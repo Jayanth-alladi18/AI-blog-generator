@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gemini Blog Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      font-size: 16px;
+    }
+    button {
+    
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+    }
+    #resultWrapper {
+      margin-top: 30px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      white-space: pre-wrap;
+      background: #f9f9f9;
+    }
+    #resultWrapper h1, #resultWrapper h2 {
+      page-break-after: avoid;
+    }
+    #resultWrapper p {
+      page-break-inside: avoid;
+      orphans: 3;
+      widows: 3;
+    }
+  </style>
+</head>
+<body>
+  <h1>📝 Gemini Blog Post Generator</h1>
+  <input id="topic" placeholder="Enter blog topic..." />
+  <select id="length">
+    <option value="short">Short</option>
+    <option value="medium" selected>Medium</option>
+    <option value="long">Long</option>
+  </select>
+  <button onclick="generatePost()">⚡ Generate Blog</button>
+  <button onclick="downloadPDF()">📄 Download as PDF</button>
+
+  <div id="resultWrapper">
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function formatBlogText(text) {
+      return text
+        .replace(/[#*]+/g, '')  // Remove markdown symbols
+        .split('\n')
+        .filter(p => p.trim() !== '')
+        .map(p => `<p>${p.trim()}</p>`)
+        .join('');
+    }
+
+    async function generatePost() {
+      const topic = document.getElementById('topic').value;
+      const length = document.getElementById('length').value;
+
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, length })
+      });
+
+      const data = await res.json();
+      if (data.post) {
+        document.getElementById('result').innerHTML = formatBlogText(data.post);
+      } else {
+        document.getElementById('result').innerHTML = `<p>Error: ${data.error}</p>`;
+      }
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('resultWrapper');
+      const opt = {
+        margin: 0.5,
+        filename: 'blog-post.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    }
+  </script>
+</body>
+</html>
